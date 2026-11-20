@@ -11,5 +11,6 @@ obj/
 # Local configuration
 .env
 
-# Agent session logs may contain private prompts
-session-ledger/
+# Agent session logs may contain private prompts (anchored to the repo root:
+# an unanchored pattern would also hide .opencode/plugins/session-ledger/)
+/session-ledger/
