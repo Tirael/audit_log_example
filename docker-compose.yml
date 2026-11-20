@@ -1,0 +1,71 @@
+name: audit-log-example
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: audit
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: audit
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit -d audit"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # Dev-mode Vault: the trust anchor lives outside the database.
+  # Dev mode is a demo shortcut; see the README for the production shape.
+  vault:
+    image: hashicorp/vault:1.20
+    command: ["server", "-dev", "-dev-root-token-id=root", "-dev-listen-address=0.0.0.0:8200"]
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+
+  # Enables KV v2 + Transit, writes the least-privilege policy and an AppRole,
+  # then drops role_id/secret_id into the shared volume for the API container.
+  vault-bootstrap:
+    image: hashicorp/vault:1.20
+    depends_on:
+      - vault
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+    entrypoint: ["/bin/sh", "/bootstrap/bootstrap.sh"]
+    volumes:
+      - ./docker/bootstrap.sh:/bootstrap/bootstrap.sh:ro
+      - approle:/vault/agent/approle
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vault-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=audit;Username=audit;Password=audit
+      # Vault Agent listens here inside the container and injects the AppRole token.
+      Vault__Address: http://127.0.0.1:8200
+    ports:
+      - "8080:8080"
+    volumes:
+      - approle:/vault/agent/approle:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/healthz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
+  approle:

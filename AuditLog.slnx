@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AuditLog/AuditLog.csproj" />
+    <Project Path="src/Orders.Api/Orders.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AuditLog.IntegrationTests/AuditLog.IntegrationTests.csproj" />
+    <Project Path="tests/AuditLog.UnitTests/AuditLog.UnitTests.csproj" />
+  </Folder>
+</Solution>

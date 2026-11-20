@@ -1,0 +1,15 @@
+# Build output
+bin/
+obj/
+*.user
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Local configuration
+.env
+
+# Agent session logs may contain private prompts
+session-ledger/
